@@ -11,7 +11,6 @@ def extract_reel_id(url):
     return match.group(1) if match else "insta_clip"
 
 def translate_srt_to_persian(en_srt_path, fa_srt_path):
-    """Reads the English SRT file line by line, translates the dialogues, and writes a Persian SRT."""
     print("Translating subtitles to Persian (فارسی)...")
     translator = GoogleTranslator(source='en', target='fa')
     
@@ -19,11 +18,9 @@ def translate_srt_to_persian(en_srt_path, fa_srt_path):
         for line in f_in:
             clean_line = line.strip()
             
-            # If the line is empty, a number index, or a timestamp string, keep it as-is
             if not clean_line or clean_line.isdigit() or "-->" in clean_line:
                 f_out.write(line)
             else:
-                # Translate dialogue blocks
                 try:
                     translated_text = translator.translate(clean_line)
                     f_out.write(f"{translated_text}\n")
@@ -40,7 +37,6 @@ def download_and_transcribe(url, output_dir="/app/output"):
     en_srt_path = f"{base_path}.srt"
     fa_srt_path = f"{base_path}.fa.srt"
     
-    # 1. Download Video and Audio Stream tracks
     ydl_opts_video = {
         'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': base_path, 
@@ -68,7 +64,6 @@ def download_and_transcribe(url, output_dir="/app/output"):
     with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:
         ydl.download([url])
         
-    # 2. Local Whisper Audio AI Engine Processing
     print("Loading Whisper AI model (base)...")
     model = whisper.load_model("base")
     
@@ -79,24 +74,21 @@ def download_and_transcribe(url, output_dir="/app/output"):
     writer = get_writer("srt", output_dir)
     writer(result, clip_id, {})
     
-    # 3. Handle Persian String Translation Pass
     translate_srt_to_persian(en_srt_path, fa_srt_path)
     print(f"Writing Persian track: {clip_id}.fa.srt")
     
-    # Clean up working temp audio track footprint
     if os.path.exists(audio_path):
         os.remove(audio_path)
     print("Process Complete!")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python transcribe_reel.py <video_url> [output_directory]")
+        print("Usage: python transcribe_reel.py <video_url>")
         sys.exit(1)
         
     video_url = sys.argv[1]
-    target_dir = sys.argv[2] if len(sys.argv) > 2 else "/app/output"
     
     try:
-        download_and_transcribe(video_url, target_dir)
+        download_and_transcribe(video_url)
     except Exception as e:
         print(f"\nAn error occurred: {e}")

@@ -1,121 +1,32 @@
-# Instagram Subtitle Extractor (Cross-Platform via Docker)
+Insta-Transcribe (Bot & CLI)
 
-A lightweight, localized AI tool using Python, `yt-dlp`, and OpenAI's Whisper `base` model to automatically download Instagram reels and extract matching `.srt` subtitles. Everything runs isolated in Docker to prevent host dependency bloat.
+A unified Docker Compose setup that runs a 24/7 Telegram bot AND a local CLI tool to extract and translate Instagram Reels to Persian.
 
----
+The heavy AI models are downloaded once and shared between both tools using a persistent Docker volume.
 
-## 📂 Project Structure
+Quick Start (Linux / Windows 11)
 
-Ensure your project folder contains the following core files:
-* `Dockerfile` (Environment configuration)
-* `transcribe_reel.py` (The extraction engine script)
-* `README.md` (This guide)
+Create a .env file in the same directory by renaming .env.example.
 
----
+Open it in nvim or VSCode and paste your Telegram Bot token inside:
 
-## 🛠️ Initial Installation (Build Once)
+TELEGRAM_BOT_TOKEN=123456789:ABCDEF...
 
-Open your terminal or PowerShell inside the project directory and run the following command to build the isolated Docker image on either machine:
 
-```bash
-docker build -t insta-transcribe .
+To Run the 24/7 Telegram Bot
 
-```
+Open PowerShell (WorkPC) or your terminal (HomePC) and run:
 
-*Note: The initial setup might take a few minutes to fetch the base image, lightweight CPU PyTorch, and Whisper layers. Once cached, runs are near-instantaneous.*
+docker compose up -d
 
----
 
-## 🚀 Environment Setup & Integration
+The bot will build itself and run silently in the background. Send it an Instagram link on Telegram!
 
-### 🐟 1. HomePC Setup (ZorinOS + Fish Shell)
+To Run the CLI Tool Locally
 
-To make the execution a seamless single-word command, add this function to your Fish environment configuration.
+You don't need to stop the bot! Run this command to process a link directly on your PC:
 
-Run this directly in your Fish shell:
+docker compose run --rm cli "[https://www.instagram.com/reel/YOUR_LINK/](https://www.instagram.com/reel/YOUR_LINK/)"
 
-```fish
-function transcribe
-    if test (count $argv) -lt 1
-        echo "Usage: transcribe <instagram_url> [optional_output_path]"
-        return 1
-    end
 
-    set url $argv[1]
-    set out_dir (pwd)
-    if test (count $argv) -ge 2
-        set out_dir $argv[2]
-    end
-
-    # Added a mount point for the root cache directory
-    docker run --rm \
-      -v "$out_dir:/app/output" \
-      -v "$HOME/.cache/whisper:/root/.cache/whisper" \
-      insta-transcribe "$url"
-end
-
-funcsave transcribe
-
-```
-
-### ⚡ 2. WorkPC Setup (Windows 11 + PowerShell)
-
-To link the command inside your Windows environment, register this function alias inside your PowerShell profile.
-
-1. Open your profile in editor: `notepad $PROFILE` (or create it if prompted).
-2. Paste the following block at the bottom and save:
-
-```powershell
-function Transcribe-Reel {
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$Url,
-        [Parameter(Mandatory=$false)]
-        [string]$OutDir = (Get-Location).Path
-    )
-
-    # Ensures a local directory exists for storing the weights file permanently
-    $CacheDir = "$env:USERPROFILE\.cache\whisper"
-    if (!(Test-Path $CacheDir)) { New-Item -ItemType Directory -Force -Path $CacheDir | Out-Null }
-
-    docker run --rm `
-      -v "${OutDir}:/app/output" `
-      -v "${CacheDir}:/root/.cache/whisper" `
-      insta-transcribe "$Url"
-
-```
-
-3. Reload your shell profile: `. $PROFILE`
-
----
-
-## 🎮 How to Use
-
-The command works identically across both platforms. Navigate to any folder where you want to store your media and fire away.
-
-### Option A: Save directly to your current working directory
-
-```bash
-transcribe "[https://www.instagram.com/reel/DZKlCXtBb0d/](https://www.instagram.com/reel/DZKlCXtBb0d/)"
-
-```
-
-### Option B: Save to a specific custom directory
-
-```bash
-# Example for Linux/ZorinOS
-transcribe "[https://www.instagram.com/reel/DZKlCXtBb0d/](https://www.instagram.com/reel/DZKlCXtBb0d/)" "/home/mehdi/Downloads"
-
-# Example for Windows PowerShell
-transcribe "[https://www.instagram.com/reel/DZKlCXtBb0d/](https://www.instagram.com/reel/DZKlCXtBb0d/)" "D:\Media\Clips"
-
-```
-
-### 📦 Output Behavior
-
-The engine automatically parses the unique shortcode ID from the URL string. If processing multiple files, they will save cleanly side-by-side without overwriting conflicts:
-
-* 🎥 `DZKlCXtBb0d.mp4` *(The local high-quality clip)*
-* 📄 `DZKlCXtBb0d.srt` *(The matching English time-stamped text subtitle track)*
-
-*Tip: Standard players like VLC will pick up the subtitle track instantly if the video and subtitle files share the same filename in the same directory.*# insta-transcribe
+The video and .srt files will automatically appear in an output/ folder inside your current directory.
