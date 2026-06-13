@@ -1,35 +1,19 @@
-version: '3.8'
-
 services:
-  # The 24/7 Telegram Bot
   bot:
     build: .
-    container_name: trans_bot
+    container_name: insta_transcribe_bot
     restart: unless-stopped
+    network_mode: host
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - HTTP_PROXY=${HTTP_PROXY:-}
-      - HTTPS_PROXY=${HTTPS_PROXY:-}
-      - http_proxy=${HTTP_PROXY:-}
-      - https_proxy=${HTTPS_PROXY:-}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-    volumes:
-      - whisper_cache:/root/.cache/whisper
-
-  # The Quick Command-Line Tool
-  cli:
-    build: .
-    container_name: trans_cli
-    entrypoint: ["python", "transcribe_reel.py"]
-    environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # Passes proxy settings seamlessly for your WorkPC if defined in .env
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - http_proxy=${HTTP_PROXY:-}
       - https_proxy=${HTTPS_PROXY:-}
     volumes:
+      # Keep the heavy AI model safely cached on the host
       - whisper_cache:/root/.cache/whisper
-      - ./output:/app/output
 
 volumes:
   whisper_cache:

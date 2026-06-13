@@ -70,14 +70,14 @@ def embed_subtitle_sync(video_path, srt_path, output_mkv):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "سلام! Send me any Instagram Reel link. I will auto-detect the language, "
-        "translate it to Persian, and send you an MKV video with embedded subtitles!"
+        "سلام! لینک ریل یا پست اینستاگرام خود را ارسال کنید، من آن را دانلود می‌کنم، متن آن را استخراج می‌کنم، \n"
+        "و به صورت یک فایل MKV با زیرنویس فارسی برای شما ارسال می‌کنم! 🎬\n"
     )
 
 async def process_reel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
     if "instagram.com" not in url:
-        await update.message.reply_text("Please send a valid Instagram link.")
+        await update.message.reply_text("لینک اینستاگرام معتبر نیست.")
         return
 
     clip_id = extract_reel_id(url)
@@ -88,7 +88,7 @@ async def process_reel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fa_srt_path = f"{base_path}.fa.srt"
     final_mkv_path = f"{base_path}_final.mkv"
 
-    status_msg = await update.message.reply_text("⏳ Downloading best quality video...")
+    status_msg = await update.message.reply_text("⏳ در حال پردازش کلیپ شما... لطفاً صبر کنید.")
 
     try:
         loop = asyncio.get_event_loop()
@@ -97,7 +97,7 @@ async def process_reel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         video_path = await loop.run_in_executor(None, download_clip_sync, url, base_path)
         
         # 2. Transcribe (Whisper reads mp4 directly and we removed language="en" so it auto-detects)
-        await status_msg.edit_text("🧠 Analyzing audio and auto-detecting language...")
+        await status_msg.edit_text("🧠 تحلیل صدا و تشخیص زبان...")
         result = await loop.run_in_executor(
             None, lambda: whisper_model.transcribe(video_path, task="transcribe")
         )
@@ -106,22 +106,22 @@ async def process_reel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         writer(result, clip_id, {})
 
         # 3. Translate the auto-detected language to Persian
-        await status_msg.edit_text("✍️ Translating subtitles to Persian (فارسی)...")
+        await status_msg.edit_text("✍️ ترجمه زیرنویس به فارسی...")
         await loop.run_in_executor(None, translate_srt_to_persian, src_srt_path, fa_srt_path)
 
         # 4. Embed into MKV
-        await status_msg.edit_text("🎬 Embedding Persian subtitles into an MKV container...")
+        await status_msg.edit_text("🎬 در حال جانمایی زیرنویس فارسی در کانتینر MKV...")
         await loop.run_in_executor(None, embed_subtitle_sync, video_path, fa_srt_path, final_mkv_path)
 
         # 5. Ship the MKV back to User as a Document
-        await status_msg.edit_text("🚀 Uploading uncompressed MKV to Telegram...")
+        await status_msg.edit_text("🚀 آپلود فایل MKV بدون فشرده‌سازی به تلگرام...")
         
         if os.path.exists(final_mkv_path):
             with open(final_mkv_path, "rb") as doc:
                 await update.message.reply_document(
                     document=doc, 
                     filename=f"{clip_id}_Persian.mkv", 
-                    caption="Here is your clip with embedded Persian subtitles! 🎬"
+                    caption="کلیپ شما با زیرنویس فارسی! 🎬"
                 )
 
         # Cleanup all working files
@@ -132,7 +132,7 @@ async def process_reel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status_msg.delete()
 
     except Exception as e:
-        await status_msg.edit_text(f"❌ Failed to process clip: {str(e)}")
+        await status_msg.edit_text(f"❌ خطا {str(e)}")
         # Try to clean up leftover files on failure
         for p in [f"{base_path}_video.mp4", src_srt_path, fa_srt_path, final_mkv_path]:
             if os.path.exists(p):

@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-# Install necessary system dependencies for audio processing
+# Install system dependencies needed for audio/video muxing and git
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
@@ -15,12 +15,7 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 3. Copy application files
+# 3. Copy only the bot script
 COPY telegram_bot.py .
-COPY transcribe_reel.py .
 
-# Create the output directory for the CLI tool
-RUN mkdir -p /app/output
-
-# Default to running the bot. The docker-compose 'cli' service overrides this.
 CMD ["python", "telegram_bot.py"]
